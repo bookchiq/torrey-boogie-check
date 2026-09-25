@@ -14,6 +14,7 @@ It opens on right now and refreshes every 5 minutes. Pick any time from about a 
 - **Air:** temperature, feels-like, UV, cloud cover, sunrise and sunset.
 - **Waves:** height, period, primary swell size and direction, and whether that's a good size for boogie boarding.
 - **Wind:** speed, gusts, and whether it's onshore, offshore, cross-shore or glassy for the way this beach faces.
+- **Weather service alerts:** when the National Weather Service has a Beach Hazards Statement, High Surf Advisory, Rip Current Statement or another alert in effect for the beach, an orange banner appears at the top. Tap it for the full text.
 - **Heads-ups when they apply:** rain in the past 72 hours (water quality), stingray season, rip currents, a narrow beach at high tide, strong UV, and daylight running out.
 
 It's a single `index.html` with no build step, no dependencies, and no API keys.
@@ -40,6 +41,7 @@ const BEACH = {
   stationName: 'La Jolla (Scripps Pier)',
   stationNote: 'about 4 mi south',
   highTideFt: 5,
+  shore: [32.9335, -117.2585],
   waterQuality: { url: 'https://www.sdbeachinfo.com/', label: 'sdbeachinfo.com', agency: 'the County' },
   notes: {
     rain: 'the Los Peñasquitos Lagoon mouth drains right onto North Beach.',
@@ -59,6 +61,7 @@ const BEACH = {
 | `station` | A NOAA CO-OPS station ID for tide predictions. | Search the [NOAA Tides & Currents map](https://tidesandcurrents.noaa.gov/map/) for the closest station. The ID is the 7-digit number. |
 | `stationName`, `stationNote` | How the station is labeled on the page, and how far it is from your beach. | — |
 | `highTideFt` | The tide height (ft above MLLW) where your beach starts to get narrow. | Local knowledge. Set it high, like `99`, to never show that note. |
+| `shore` | A point **on the sand**, as `[lat, lon]`, used to find weather alerts. US only; set it to `null` elsewhere. | Right-click the beach itself in Google Maps. It has to be on land: NWS issues beach alerts for land forecast zones, and an offshore point lands in a marine zone that doesn't get them. The page looks up the zone for you. |
 | `waterQuality` | Where to check the official water-quality status for your area. | Your county or state health department's beach page. In the US, many are listed at the [EPA BEACON site](https://beacon.epa.gov/). |
 | `notes.rain`, `.highTide`, `.rip` | Optional local detail added to those heads-ups. Set any of them to `''` to show just the generic text. | — |
 | `notes.stingrayMonths` | The first and last month of stingray season, like `[5, 10]` for May–October. Use `null` to turn the note off. | — |
@@ -91,7 +94,7 @@ The verdicts are rules of thumb for boogie boarding at a sandy beach break, writ
 | `waveKind` | How good the wave height is | under 1 ft nearly flat · 1–2 small · 2–5 good · 5–7 big · 7+ too big |
 | `windKind` | Wind quality from speed (mph) and direction relative to `facing` | ≤4 glassy · offshore is clean · onshore gets choppy at 8+ and blown out at 14+ |
 | `tideScore` | Tide preference | Mid tide scores best. Below 1 ft or above 5 ft scores lower. |
-| `rate` | Combines the three scores into Go, Maybe or Skip it. Rain of 0.1 in or more in the past 72 hours is always Skip it. | — |
+| `rate` | Combines the three scores into Go, Maybe or Skip it. | Rain of 0.1 in or more in the past 72 hours is always Skip it. A beach-related NWS *warning* (e.g. High Surf Warning) is Skip it. A beach-related statement or advisory caps the rating at Maybe. "Beach-related" is the `BEACH_ALERT` pattern. |
 
 If you surf or bodysurf instead, `waveKind` is the main one to change. If your beach is a reef or point break, change `tideScore` to match its best tide.
 
@@ -100,6 +103,7 @@ If you surf or bodysurf instead, `waveKind` is the main one to change. If your b
 All requests go straight from your browser to these free public APIs. There's no server in between.
 
 - **[NOAA CO-OPS](https://api.tidesandcurrents.noaa.gov/api/prod/)**: tide predictions (6-minute curve plus highs and lows) and measured water temperature. US stations only.
+- **[National Weather Service API](https://www.weather.gov/documentation/services-web-api)**: active watches, warnings and advisories for the beach's forecast zone. US only. It only lists alerts in effect *now*, so for a past or future time the page shows today's alerts only if that time falls inside the alert's start and end.
 - **[Open-Meteo Forecast](https://open-meteo.com/en/docs)**: air temperature, feels-like, wind, gusts, UV, cloud cover, precipitation, sunrise and sunset.
 - **[Open-Meteo Marine](https://open-meteo.com/en/docs/marine-weather-api)**: wave height and period, swell, and forecast sea surface temperature.
 
@@ -107,7 +111,7 @@ Open-Meteo is free for non-commercial use without a key. A personal page like th
 
 ### Outside the US?
 
-Everything except the tides and measured water temperature works worldwide. For tides, you'd replace `loadTides` with another source. Open-Meteo Marine's `sea_level_height_msl` variable gives a modeled tide curve almost anywhere, though it's less precise than a station prediction. `loadTides` just needs to return `{ pts: [[timeMs, heightFt], …], hilo: [{ t, v, type: 'H' | 'L' }, …] }`.
+Everything except the tides, measured water temperature and weather alerts works worldwide. Set `shore: null` to turn alerts off. For tides, you'd replace `loadTides` with another source. Open-Meteo Marine's `sea_level_height_msl` variable gives a modeled tide curve almost anywhere, though it's less precise than a station prediction. `loadTides` just needs to return `{ pts: [[timeMs, heightFt], …], hilo: [{ t, v, type: 'H' | 'L' }, …] }`.
 
 ## How the code is organized
 
@@ -115,9 +119,9 @@ The whole app is one IIFE in `index.html`:
 
 - **`BEACH`**: the config block above.
 - **Time helpers**: every timestamp is handled as beach-local wall-clock time (stored as `Date.UTC` of the local components). That keeps NOAA's and Open-Meteo's local-time strings lined up without time-zone math.
-- **Data**: `loadModels` fetches a two-week window of weather and marine data once at startup. `loadTides` and `measuredWater` fetch NOAA data for the selected day and are cached per day.
+- **Data**: `loadModels` fetches a two-week window of weather and marine data once at startup. `loadTides` and `measuredWater` fetch NOAA data for the selected day and are cached per day. `loadAlerts` fetches NWS alerts at most every 5 minutes.
 - **Judgement**: `suitFor`, `windKind`, `waveKind`, `tideScore`, `rate`.
-- **Render**: `drawChart` (the tide SVG), `drawHours` (the daylight strip), and `render` (everything else).
+- **Render**: `drawAlerts` (the banner), `drawChart` (the tide SVG), `drawHours` (the daylight strip), and `render` (everything else).
 
 Light and dark themes follow your system setting through CSS variables at the top of the `<style>` block.
 
