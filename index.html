@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Torrey North Boogie Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #eef2f1;
+    --surface: #ffffff;
+    --ink: #0f2a31;
+    --muted: #5b7076;
+    --line: #d5dfdf;
+    --sea: #1d7479;
+    --sea-soft: #cfe6e4;
+    --sand: #c7873a;
+    --night: rgba(15, 42, 49, 0.06);
+    --good: #2f8a4c;
+    --fair: #c28a17;
+    --poor: #b5483a;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1a1e; --surface: #11252b; --ink: #e3eeee; --muted: #8fa6aa; --line: #22393f;
+      --sea: #5fc1c0; --sea-soft: #1a3a3f; --sand: #e0a55a; --night: rgba(0, 0, 0, 0.28);
+      --good: #6cc68a; --fair: #e2b24c; --poor: #e27c6c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b1a1e; --surface: #11252b; --ink: #e3eeee; --muted: #8fa6aa; --line: #22393f;
+    --sea: #5fc1c0; --sea-soft: #1a3a3f; --sand: #e0a55a; --night: rgba(0, 0, 0, 0.28);
+    --good: #6cc68a; --fair: #e2b24c; --poor: #e27c6c;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--bg); }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 "Figtree", system-ui, -apple-system, sans-serif;
+    padding-inline: 16px; padding-block: 20px 40px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 18px; }
+  .num, h1, .big { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-variant-numeric: tabular-nums; }
+
+  header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+  h1 { margin: 0; font-size: 34px; line-height: 1; font-weight: 700; letter-spacing: 0.01em; text-wrap: balance; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .picker { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .picker input {
+    font: inherit; font-size: 14px; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0;
+  }
+  button {
+    font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--ink);
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px;
+  }
+  button:hover { border-color: var(--sea); }
+  button.on { background: var(--sea); border-color: var(--sea); color: var(--bg); }
+  :focus-visible { outline: 2px solid var(--sand); outline-offset: 2px; }
+
+  .verdict {
+    display: grid; gap: 4px; padding: 16px 18px; border-radius: 12px;
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  .verdict .pill {
+    justify-self: start; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor;
+  }
+  .verdict .line { font-size: 19px; font-weight: 500; text-wrap: balance; }
+  .good { color: var(--good); } .fair { color: var(--fair); } .poor { color: var(--poor); }
+
+  .tide { display: grid; gap: 10px; }
+  .tide-head { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: baseline; }
+  .big { font-size: 52px; font-weight: 700; line-height: 0.95; }
+  .big small { font-size: 22px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+  .dir { font-size: 22px; font-weight: 600; color: var(--sea); font-family: "Barlow Condensed", sans-serif; }
+  .next { color: var(--muted); }
+  .next b { color: var(--ink); font-weight: 600; }
+  .chart { width: 100%; overflow-x: auto; }
+  .chart svg { display: block; width: 100%; min-width: 520px; height: auto; }
+  .chart text { font-family: "Barlow Condensed", sans-serif; font-size: 13px; fill: var(--muted); }
+  .chart .hl { fill: var(--ink); font-weight: 600; }
+
+  .hours { display: grid; grid-template-columns: repeat(auto-fit, minmax(38px, 1fr)); gap: 4px; }
+  .hours button {
+    padding: 4px 0 5px; display: grid; gap: 3px; justify-items: center; font-size: 12px; font-weight: 500; border-radius: 6px;
+  }
+  .hours .dot { width: 100%; height: 5px; border-radius: 3px; background: currentColor; }
+  .hours button.sel { border-color: var(--ink); }
+  .hours .t { color: var(--muted); }
+  .legend { font-size: 12px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .val { font-family: "Barlow Condensed", sans-serif; font-size: 38px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .val small { font-size: 18px; color: var(--muted); font-weight: 600; }
+  .call { font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .rows { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 14px; }
+  .rows dt { color: var(--muted); } .rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .arrow { display: inline-block; vertical-align: -3px; }
+
+  .notes { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .notes li { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; }
+  .notes li.warn { border-color: var(--poor); }
+  .notes li.heads { border-color: var(--fair); }
+  a { color: var(--sea); }
+  footer { color: var(--muted); font-size: 12px; }
+  .err { color: var(--poor); }
+  @media (prefers-reduced-motion: no-preference) { .val, .big { transition: opacity .2s; } }
+  .loading .val, .loading .big { opacity: .35; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1 id="beachName">Torrey Pines North</h1>
+      <div class="sub" id="when">Loading…</div>
+    </div>
+    <div class="picker">
+      <input type="datetime-local" id="dt" step="900" aria-label="Pick a day and time">
+      <button id="minus" aria-label="One hour earlier">−1h</button>
+      <button id="plus" aria-label="One hour later">+1h</button>
+      <button id="now" class="on">Now</button>
+    </div>
+  </header>
+
+  <section class="verdict" id="verdict" aria-live="polite">
+    <span class="pill" id="vpill">…</span>
+    <div class="line" id="vline">Checking the beach…</div>
+  </section>
+
+  <section class="card tide">
+    <div class="label" id="tideLabel">Tide</div>
+    <div class="tide-head">
+      <div class="big" id="tideH">–<small>ft</small></div>
+      <div class="dir" id="tideDir"></div>
+      <div class="next" id="tideNext"></div>
+    </div>
+    <div class="chart" id="chart"></div>
+    <div class="hours" id="hours"></div>
+    <div class="legend">Daylight hours, colored by how good the boogie boarding looks. Tap one to jump there.</div>
+  </section>
+
+  <div class="grid">
+    <section class="card">
+      <div class="label">Water</div>
+      <div class="val" id="waterT">–<small>°F</small></div>
+      <div class="call" id="suit"></div>
+      <div class="meta" id="waterSrc"></div>
+    </section>
+    <section class="card">
+      <div class="label">Air</div>
+      <div class="val" id="airT">–<small>°F</small></div>
+      <dl class="rows" id="airRows"></dl>
+    </section>
+    <section class="card">
+      <div class="label">Waves</div>
+      <div class="val" id="waveH">–<small>ft</small></div>
+      <div class="call" id="waveCall"></div>
+      <dl class="rows" id="waveRows"></dl>
+    </section>
+    <section class="card">
+      <div class="label">Wind</div>
+      <div class="val" id="windS">–<small>mph</small></div>
+      <div class="call" id="windCall"></div>
+      <dl class="rows" id="windRows"></dl>
+    </section>
+  </div>
+
+  <ul class="notes" id="notes"></ul>
+
+  <footer id="credits"></footer>
+</div>
+
+<script>
+(() => {
+  // ===== Your beach. Everything location-specific lives here; see README. =====
+  const BEACH = {
+    name: 'Torrey Pines North',
+    lat: 32.933, lon: -117.265,             // a point just offshore of where you paddle out
+    timeZone: 'America/Los_Angeles',        // IANA zone of the beach (NOAA times use the station's local time)
+    facing: 255,                            // compass bearing the beach looks out to sea (WSW); wind from here is onshore
+    station: '9410230',                     // NOAA CO-OPS station with tide predictions (and ideally water temp)
+    stationName: 'La Jolla (Scripps Pier)',
+    stationNote: 'about 4 mi south',
+    highTideFt: 5,                          // above this, the note about a narrow beach shows
+    waterQuality: { url: 'https://www.sdbeachinfo.com/', label: 'sdbeachinfo.com', agency: 'the County' },
+    notes: {
+      rain: 'the Los Peñasquitos Lagoon mouth drains right onto North Beach.',
+      highTide: 'not much dry sand near the cliffs. Keep your stuff up by the lot end.',
+      rip: 'especially near the lagoon mouth.',
+      stingrayMonths: [5, 10]               // first and last month of stingray season; null to hide
+    }
+  };
+  // ============================================================================
+
+  const { lat: LAT, lon: LON, station: STATION, facing: FACING, timeZone: TZ } = BEACH;
+  const NOAA = 'https://api.tidesandcurrents.noaa.gov/api/prod/datagetter';
+  const byId = id => document.getElementById(id);
+  document.title = `${BEACH.name} Boogie Check`;
+  byId('beachName').textContent = BEACH.name;
+  byId('tideLabel').textContent = `Tide · ${BEACH.stationName}`;
+  byId('credits').innerHTML = `Tides &amp; measured water temp: NOAA station ${STATION}${BEACH.stationNote ? `, ${BEACH.stationNote}` : ''}. Waves, wind, forecast water temp: Open-Meteo models.
+    Water quality is an estimate from recent rain. Check <a href="${BEACH.waterQuality.url}" target="_blank" rel="noopener">${BEACH.waterQuality.label}</a> for ${BEACH.waterQuality.agency}’s official status.`;
+  const HOUR = 3600e3, DAY = 24 * HOUR;
+  const $ = id => document.getElementById(id);
+
+  // All times are LA wall-clock, stored as ms via Date.UTC so every source lines up.
+  const pad = n => String(n).padStart(2, '0');
+  const parseWall = s => { const [d, t = '00:00'] = s.split(/[ T]/); const [y, m, dd] = d.split('-').map(Number); const [h, mi] = t.split(':').map(Number); return Date.UTC(y, m - 1, dd, h, mi); };
+  const parts = ms => { const d = new Date(ms); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), wd: d.getUTCDay() }; };
+  const dayStart = ms => ms - (ms % DAY);
+  const ymd = ms => { const p = parts(ms); return `${p.y}${pad(p.m)}${pad(p.d)}`; };
+  const inputVal = ms => { const p = parts(ms); return `${p.y}-${pad(p.m)}-${pad(p.d)}T${pad(p.h)}:${pad(p.mi)}`; };
+  const hourKey = ms => { const p = parts(ms); return `${p.y}-${pad(p.m)}-${pad(p.d)}T${pad(p.h)}:00`; };
+  const fmtTime = ms => { const p = parts(ms); const h12 = p.h % 12 || 12; return `${h12}:${pad(p.mi)}${p.h < 12 ? 'a' : 'p'}`; };
+  const fmtHour = ms => { const h = parts(ms).h; return `${h % 12 || 12}${h < 12 ? 'a' : 'p'}`; };
+  const fmtDay = ms => new Date(ms).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', month: 'short', day: 'numeric' });
+  const fmtDur = ms => { const m = Math.round(ms / 60e3); const h = Math.floor(m / 60); return h ? `${h}h ${pad(m % 60)}m` : `${m}m`; };
+  const nowWall = () => {
+    const f = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    const o = Object.fromEntries(f.formatToParts(new Date()).map(p => [p.type, p.value]));
+    return Date.UTC(+o.year, o.month - 1, +o.day, +o.hour, +o.minute);
+  };
+  const compass = deg => ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(deg / 22.5) % 16];
+  const cToF = c => c * 9 / 5 + 32;
+  const arrow = deg => `<svg class="arrow" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g transform="rotate(${(deg + 180) % 360} 8 8)"><path d="M8 1 L12 9 L8.9 8 L8.9 15 L7.1 15 L7.1 8 L4 9 Z" fill="currentColor"/></g></svg>`;
+  const getJSON = async url => { const r = await fetch(url); if (!r.ok) throw new Error(`${r.status} from ${new URL(url).host}`); return r.json(); };
+
+  let sel = nowWall(), followNow = true;
+  let wx = null, marine = null, tideCache = {};
+
+  // ---------- data ----------
+  async function loadModels() {
+    const common = `latitude=${LAT}&longitude=${LON}&timezone=${encodeURIComponent(TZ)}&past_days=7&forecast_days=8`;
+    const [w, m] = await Promise.all([
+      getJSON(`https://api.open-meteo.com/v1/forecast?${common}&hourly=temperature_2m,apparent_temperature,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,precipitation,cloud_cover&daily=sunrise,sunset&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch`),
+      getJSON(`https://marine-api.open-meteo.com/v1/marine?${common}&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,swell_wave_direction,sea_surface_temperature&length_unit=imperial`)
+    ]);
+    const index = h => Object.fromEntries(h.time.map((t, i) => [t, i]));
+    wx = { ...w, idx: index(w.hourly) };
+    marine = { ...m, idx: index(m.hourly) };
+    const first = parseWall(w.hourly.time[0]), last = parseWall(w.hourly.time.at(-1));
+    $('dt').min = inputVal(first); $('dt').max = inputVal(last);
+  }
+
+  async function loadTides(day) {
+    const key = ymd(day);
+    if (tideCache[key]) return tideCache[key];
+    const q = `station=${STATION}&begin_date=${ymd(day - DAY)}&end_date=${ymd(day + DAY)}&datum=MLLW&units=english&time_zone=lst_ldt&format=json`;
+    const [curve, hilo] = await Promise.all([
+      getJSON(`${NOAA}?product=predictions&interval=6&${q}`),
+      getJSON(`${NOAA}?product=predictions&interval=hilo&${q}`)
+    ]);
+    return tideCache[key] = {
+      pts: curve.predictions.map(p => [parseWall(p.t), +p.v]),
+      hilo: hilo.predictions.map(p => ({ t: parseWall(p.t), v: +p.v, type: p.type }))
+    };
+  }
+
+  async function measuredWater(t) {
+    const now = nowWall();
+    if (t > now + 30 * 60e3 || t < now - 7 * DAY) return null;
+    const url = Math.abs(t - now) < 45 * 60e3
+      ? `${NOAA}?product=water_temperature&station=${STATION}&date=latest&units=english&time_zone=lst_ldt&format=json`
+      : `${NOAA}?product=water_temperature&station=${STATION}&begin_date=${encodeURIComponent(ymd(t - 2 * HOUR) + ' ' + fmt24(t - 2 * HOUR))}&range=3&units=english&time_zone=lst_ldt&format=json`;
+    try {
+      const j = await getJSON(url);
+      if (!j.data?.length) return null;
+      let best = j.data[0];
+      for (const d of j.data) if (Math.abs(parseWall(d.t) - t) < Math.abs(parseWall(best.t) - t)) best = d;
+      return best.v === '' ? null : { f: +best.v, t: parseWall(best.t) };
+    } catch { return null; }
+  }
+  const fmt24 = ms => { const p = parts(ms); return `${pad(p.h)}:${pad(p.mi)}`; };
+
+  const tideAt = (tide, t) => {
+    const pts = tide.pts;
+    for (let i = 1; i < pts.length; i++) if (pts[i][0] >= t) {
+      const [t0, v0] = pts[i - 1], [t1, v1] = pts[i];
+      return v0 + (v1 - v0) * (t - t0) / (t1 - t0);
+    }
+    return pts.at(-1)[1];
+  };
+
+  const hourData = t => {
+    const k = hourKey(t + 30 * 60e3);   // nearest hour
+    const wi = wx.idx[k], mi = marine.idx[k];
+    if (wi === undefined || mi === undefined) return null;
+    const H = wx.hourly, M = marine.hourly;
+    let rain72 = 0;
+    for (let i = Math.max(0, wi - 72); i < wi; i++) rain72 += H.precipitation[i] || 0;
+    return {
+      air: H.temperature_2m[wi], feels: H.apparent_temperature[wi], uv: H.uv_index[wi], cloud: H.cloud_cover[wi],
+      wind: H.wind_speed_10m[wi], gust: H.wind_gusts_10m[wi], windDir: H.wind_direction_10m[wi], rain72,
+      wave: M.wave_height[mi], period: M.wave_period[mi],
+      swell: M.swell_wave_height[mi], swellPer: M.swell_wave_period[mi], swellDir: M.swell_wave_direction[mi],
+      sst: M.sea_surface_temperature[mi] == null ? null : cToF(M.sea_surface_temperature[mi])
+    };
+  };
+
+  const sunFor = day => {
+    const i = wx.daily.time.indexOf(inputVal(day).slice(0, 10));
+    return i < 0 ? null : { rise: parseWall(wx.daily.sunrise[i]), set: parseWall(wx.daily.sunset[i]) };
+  };
+
+  // ---------- judgement ----------
+  const suitFor = f =>
+    f >= 72 ? 'No wetsuit. Trunks and a rash guard.' :
+    f >= 68 ? 'Rash guard is plenty; spring suit if you run cold.' :
+    f >= 64 ? 'Spring suit (shorty) or a 2mm top.' :
+    f >= 60 ? '3/2 fullsuit.' :
+    f >= 56 ? '4/3 fullsuit.' : '4/3 fullsuit plus booties.';
+
+  const windKind = (spd, dir) => {
+    if (spd <= 4) return { k: 'glassy', txt: 'Glassy', score: 3 };
+    const diff = Math.abs(((dir - FACING) + 540) % 360 - 180);
+    if (diff <= 60) return spd >= 14 ? { k: 'onshore', txt: 'Strong onshore, blown out', score: 0 } : spd >= 8 ? { k: 'onshore', txt: 'Onshore, choppy', score: 1 } : { k: 'onshore', txt: 'Light onshore, a little texture', score: 2 };
+    if (diff >= 120) return spd >= 20 ? { k: 'offshore', txt: 'Strong offshore, hard to paddle into', score: 1 } : { k: 'offshore', txt: 'Offshore, clean faces', score: 3 };
+    return spd >= 12 ? { k: 'cross', txt: 'Cross-shore, bumpy', score: 1 } : { k: 'cross', txt: 'Light cross-shore', score: 2 };
+  };
+
+  const waveKind = h =>
+    h < 1 ? { txt: 'Nearly flat', score: 0 } :
+    h < 2 ? { txt: 'Small, shorebreak fun', score: 2 } :
+    h < 5 ? { txt: 'Good boogie size', score: 3 } :
+    h < 7 ? { txt: 'Big. Strong swimmers only', score: 1 } : { txt: 'Too big for boogie boarding', score: 0 };
+
+  const periodTxt = p => p < 7 ? 'short-period wind swell, mushy' : p < 11 ? 'average push' : 'groundswell, sets hit harder';
+
+  const tideScore = (tide, t) => {
+    const v = tideAt(tide, t);
+    return v < 1 ? 1 : v > 5 ? 1 : 2;
+  };
+
+  const rate = (d, tide, t) => {
+    if (!d) return null;
+    if (d.rain72 >= 0.1) return 'poor';
+    const s = waveKind(d.wave).score + windKind(d.wind, d.windDir).score + tideScore(tide, t);
+    return s >= 7 ? 'good' : s >= 5 ? 'fair' : 'poor';
+  };
+
+  // ---------- render ----------
+  function drawChart(tide, day, sun) {
+    const W = 720, Ht = 190, padL = 30, padR = 12, padT = 26, padB = 22;
+    const pts = tide.pts.filter(([t]) => t >= day && t <= day + DAY);
+    const vals = pts.map(p => p[1]);
+    const lo = Math.floor(Math.min(...vals) - 0.3), hi = Math.ceil(Math.max(...vals) + 0.3);
+    const x = t => padL + (t - day) / DAY * (W - padL - padR);
+    const y = v => padT + (hi - v) / (hi - lo) * (Ht - padT - padB);
+    const line = pts.map(([t, v], i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join('');
+    const area = `${line}L${x(pts.at(-1)[0]).toFixed(1)},${Ht - padB}L${x(pts[0][0]).toFixed(1)},${Ht - padB}Z`;
+    let s = `<svg viewBox="0 0 ${W} ${Ht}" role="img" aria-label="Tide curve for ${fmtDay(day)}">`;
+    if (sun) {
+      s += `<rect x="${padL}" y="${padT - 8}" width="${x(sun.rise) - padL}" height="${Ht - padB - padT + 8}" fill="var(--night)"/>`;
+      s += `<rect x="${x(sun.set)}" y="${padT - 8}" width="${W - padR - x(sun.set)}" height="${Ht - padB - padT + 8}" fill="var(--night)"/>`;
+    }
+    for (let v = lo; v <= hi; v++) {
+      s += `<line x1="${padL}" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>`;
+      s += `<text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    }
+    for (let h = 0; h <= 24; h += 3) s += `<text x="${x(day + h * HOUR)}" y="${Ht - 5}" text-anchor="middle">${h === 24 ? '' : fmtHour(day + h * HOUR)}</text>`;
+    s += `<path d="${area}" fill="var(--sea-soft)" opacity="0.8"/><path d="${line}" fill="none" stroke="var(--sea)" stroke-width="2.5"/>`;
+    for (const e of tide.hilo) {
+      if (e.t < day || e.t > day + DAY) continue;
+      const ex = Math.min(Math.max(x(e.t), padL + 34), W - padR - 34);
+      const ey = e.type === 'H' ? y(e.v) - 8 : y(e.v) + 16;
+      s += `<circle cx="${x(e.t)}" cy="${y(e.v)}" r="3" fill="var(--sea)"/>`;
+      s += `<text x="${ex}" y="${Math.max(ey, 13)}" text-anchor="middle"><tspan class="hl">${e.v.toFixed(1)}′</tspan> ${fmtTime(e.t)}</text>`;
+    }
+    if (sel >= day && sel <= day + DAY) {
+      const cx = x(sel), cy = y(tideAt(tide, sel));
+      s += `<line x1="${cx}" x2="${cx}" y1="${padT - 8}" y2="${Ht - padB}" stroke="var(--sand)" stroke-width="1.5" stroke-dasharray="3 3"/>`;
+      s += `<circle cx="${cx}" cy="${cy}" r="6" fill="var(--sand)" stroke="var(--surface)" stroke-width="2"/>`;
+    }
+    $('chart').innerHTML = s + '</svg>';
+  }
+
+  function drawHours(tide, day, sun) {
+    const start = sun ? Math.ceil((sun.rise - day) / HOUR) : 6, end = sun ? Math.floor((sun.set - day) / HOUR) : 19;
+    const selHour = Math.round((sel - day) / HOUR);
+    let html = '';
+    for (let h = start; h <= end; h++) {
+      const t = day + h * HOUR, r = rate(hourData(t), tide, t);
+      html += `<button data-t="${t}" class="${h === selHour ? 'sel' : ''}" aria-label="${fmtHour(t)}, ${r || 'no data'}"><span class="dot ${r || ''}" style="${r ? '' : 'color:var(--line)'}"></span><span class="t">${fmtHour(t)}</span></button>`;
+    }
+    $('hours').innerHTML = html;
+  }
+
+  const rows = pairs => pairs.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+
+  async function render() {
+    document.body.classList.add('loading');
+    $('dt').value = inputVal(sel);
+    $('now').classList.toggle('on', followNow);
+    const day = dayStart(sel);
+    try {
+      const [tide, meas] = await Promise.all([loadTides(day), measuredWater(sel)]);
+      const d = hourData(sel), sun = sunFor(day);
+      const now = nowWall();
+      $('when').textContent = followNow ? `Right now · ${fmtDay(sel)}, ${fmtTime(sel)}` : `${fmtDay(sel)}, ${fmtTime(sel)}${sel < now ? ' (past)' : ''}`;
+
+      // tide
+      const h = tideAt(tide, sel), rising = tideAt(tide, sel + 6 * 60e3) > h;
+      const next = tide.hilo.find(e => e.t > sel), prev = [...tide.hilo].reverse().find(e => e.t <= sel);
+      $('tideH').innerHTML = `${h.toFixed(1)}<small>ft</small>`;
+      $('tideDir').textContent = rising ? '↑ Rising' : '↓ Falling';
+      $('tideNext').innerHTML = next ? `${next.type === 'H' ? 'High' : 'Low'} <b>${next.v.toFixed(1)} ft</b> at <b>${fmtTime(next.t)}</b> · in ${fmtDur(next.t - sel)}` : '';
+      drawChart(tide, day, sun);
+      drawHours(tide, day, sun);
+
+      if (!d) throw new Error('No forecast for that hour. Pick a time within about a week of today.');
+
+      // water
+      const water = meas ? meas.f : d.sst;
+      $('waterT').innerHTML = water == null ? '–<small>°F</small>' : `${Math.round(water)}<small>°F</small>`;
+      $('suit').textContent = water == null ? '' : suitFor(water);
+      $('waterSrc').textContent = meas ? `Measured at ${BEACH.stationName}, ${fmtTime(meas.t)}` : 'Model forecast; the station sensor only covers the past week';
+
+      // air
+      $('airT').innerHTML = `${Math.round(d.air)}<small>°F</small>`;
+      const uvTxt = d.uv < 3 ? 'low' : d.uv < 6 ? 'moderate' : d.uv < 8 ? 'high' : 'very high';
+      $('airRows').innerHTML = rows([
+        ['Feels like', `${Math.round(d.feels)}°`],
+        ['UV index', `${Math.round(d.uv)} · ${uvTxt}`],
+        ['Clouds', `${d.cloud}%`],
+        sun ? ['Sun', `${fmtTime(sun.rise)} – ${fmtTime(sun.set)}`] : ['Sun', '–']
+      ]);
+
+      // waves
+      const wk = waveKind(d.wave);
+      $('waveH').innerHTML = `${d.wave.toFixed(1)}<small>ft @ ${Math.round(d.period)}s</small>`;
+      $('waveCall').textContent = wk.txt;
+      $('waveRows').innerHTML = rows([
+        ['Primary swell', `${d.swell.toFixed(1)} ft @ ${Math.round(d.swellPer)}s`],
+        ['From', `${arrow(d.swellDir)} ${compass(d.swellDir)} ${Math.round(d.swellDir)}°`],
+        ['Feel', periodTxt(d.period)]
+      ]);
+
+      // wind
+      const wnd = windKind(d.wind, d.windDir);
+      $('windS').innerHTML = `${Math.round(d.wind)}<small>mph</small>`;
+      $('windCall').textContent = wnd.txt;
+      $('windRows').innerHTML = rows([
+        ['From', `${arrow(d.windDir)} ${compass(d.windDir)} ${Math.round(d.windDir)}°`],
+        ['Gusts', `${Math.round(d.gust)} mph`]
+      ]);
+
+      // verdict
+      const r = rate(d, tide, sel);
+      const pill = { good: 'Go', fair: 'Maybe', poor: 'Skip it' }[r];
+      const suitShort = water == null ? '' : water >= 72 ? 'no wetsuit' : water >= 68 ? 'rash guard' : water >= 64 ? 'spring suit' : water >= 60 ? '3/2' : '4/3';
+      const dark = sun && (sel < sun.rise || sel > sun.set);
+      let line = d.rain72 >= 0.1
+        ? `Recent rain: ${d.rain72.toFixed(2)} in over 72 hrs. Stay out of the water until the advisory clears.`
+        : `${d.wave.toFixed(0)} ft @ ${Math.round(d.period)}s, ${wnd.txt.toLowerCase()}, tide ${rising ? 'rising' : 'falling'}${water != null ? `. ${Math.round(water)}° water: ${suitShort}.` : '.'}`;
+      if (dark) line += ' It’s dark out.';
+      $('vpill').textContent = pill; $('vpill').className = `pill ${r}`;
+      $('vline').textContent = line;
+
+      // notes
+      const notes = [];
+      const m = parts(sel).m;
+      const N = BEACH.notes, wq = BEACH.waterQuality, rays = N.stingrayMonths;
+      if (d.rain72 >= 0.1) notes.push(['warn', `${d.rain72.toFixed(2)} in of rain in the 72 hrs before this time. Health agencies usually advise no water contact for 72 hrs after rain${N.rain ? `, and ${N.rain}` : '.'} <a href="${wq.url}" target="_blank" rel="noopener">Check ${wq.label}</a>.`]);
+      if (rays && water != null && water >= 66 && m >= rays[0] && m <= rays[1]) notes.push(['heads', 'Stingray season. Shuffle your feet on the way in.']);
+      if (h > BEACH.highTideFt) notes.push(['heads', `High tide (${h.toFixed(1)} ft): ${N.highTide || 'the beach gets narrow.'}`]);
+      if (d.wave >= 3) notes.push(['heads', `Rip currents are more likely at this size${N.rip ? `, ${N.rip}` : '.'} Stay near a staffed lifeguard tower.`]);
+      if (d.uv >= 6 && !dark) notes.push(['', `UV ${Math.round(d.uv)}. Sunscreen before you paddle out.`]);
+      if (sun && !dark && sun.set - sel < 90 * 60e3 && sun.set > sel) notes.push(['', `Sunset at ${fmtTime(sun.set)}, ${fmtDur(sun.set - sel)} of light left.`]);
+      if (prev && next) {
+        const frac = (sel - prev.t) / (next.t - prev.t);
+        if (frac > 0.25 && frac < 0.75 && rising) notes.push(['', 'Mid tide on the push. Usually the sweet spot for this beach break.']);
+      }
+      $('notes').innerHTML = notes.map(([c, t]) => `<li class="${c}">${t}</li>`).join('');
+    } catch (e) {
+      $('vpill').textContent = 'No data'; $('vpill').className = 'pill poor';
+      $('vline').innerHTML = `<span class="err">${e.message}</span>`;
+    }
+    document.body.classList.remove('loading');
+  }
+
+  // ---------- controls ----------
+  const go = (t, follow = false) => { sel = t; followNow = follow; render(); };
+  $('dt').addEventListener('change', e => e.target.value && go(parseWall(e.target.value)));
+  $('minus').addEventListener('click', () => go(sel - HOUR));
+  $('plus').addEventListener('click', () => go(sel + HOUR));
+  $('now').addEventListener('click', () => go(nowWall(), true));
+  $('hours').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(+b.dataset.t); });
+  setInterval(() => { if (followNow) go(nowWall(), true); }, 5 * 60e3);
+
+  loadModels().then(render).catch(e => {
+    $('vpill').textContent = 'Offline'; $('vpill').className = 'pill poor';
+    $('vline').innerHTML = `<span class="err">Couldn’t reach the forecast service (${e.message}). Check your connection and reload.</span>`;
+  });
+})();
+</script>
+</body>
+</html>
