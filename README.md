@@ -68,6 +68,8 @@ const BEACH = {
 
 **Water temperature:** if your NOAA station has a water temperature sensor, the page shows the measured reading for now and the past week. If it doesn't, or for future times, it uses a forecast model instead. To check whether a station has a sensor, open its page on tidesandcurrents.noaa.gov and look for "Water Temperature" under the station's data. If yours has tides but no temperature sensor, everything still works.
 
+**Icon (optional):** `favicon.svg` is the browser-tab icon, a wave and sun. `apple-touch-icon.png` (180×180, square, no transparency) is what your phone's home screen shows. The name under the home-screen icon comes from the `apple-mobile-web-app-title` tag in `<head>`.
+
 ### 3. Try it locally
 
 The page needs to be served over `http://`, not opened as a file, so the browser allows the data requests:
